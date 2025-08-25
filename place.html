@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tap2Go | 360° Virtual Tour</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/2.5.0/remixicon.css" rel="stylesheet">
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            overflow-x: hidden;
+        }
+        
+        /* Main container */
+        .container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Header styles */
+        .header {
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #3182ce;
+            color: white;
+        }
+        
+        .header-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .header-controls {
+            display: flex;
+            align-items: center;
+        }
+        
+        .btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            color: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Main content */
+        .main-content {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* 360 view container */
+        .panorama-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        
+        .panorama-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        /* Navigation arrows */
+        .nav-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .nav-arrow:hover {
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+        
+        .nav-previous {
+            left: 1rem;
+        }
+        
+        .nav-next {
+            right: 1rem;
+        }
+        
+        /* Location title */
+        .location-title {
+            position: absolute;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+        }
+        
+        /* Controls bar */
+        .controls-bar {
+            position: absolute;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+        }
+        
+        .indicator-dots {
+            display: flex;
+            gap: 0.25rem;
+        }
+        
+        .dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            background-color: gray;
+            cursor: pointer;
+        }
+        
+        .dot.active {
+            background-color: white;
+        }
+        
+        /* Hotspots */
+        .hotspot {
+            position: absolute;
+            background-color: #3182ce;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transform: translate(-50%, -50%);
+        }
+        
+        .hotspot:hover {
+            background-color: #2c5282;
+        }
+        
+        /* Information panel */
+        .info-panel {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 20rem;
+            background-color: white;
+            box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+            overflow-y: auto;
+            transform: translateX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .info-panel.hidden {
+            transform: translateX(100%);
+        }
+        
+        .info-panel.dark {
+            background-color: #2d3748;
+            color: white;
+        }
+        
+        .info-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .info-section {
+            margin-bottom: 1rem;
+        }
+        
+        .info-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .info-list {
+            list-style-type: disc;
+            padding-left: 1.25rem;
+            font-size: 0.875rem;
+        }
+        
+        .rating {
+            display: flex;
+            align-items: center;
+        }
+        
+        .star {
+            color: #ecc94b;
+            margin-right: 0.25rem;
+        }
+        
+        /* Side menu */
+        .side-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 16rem;
+            background-color: white;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            transform: translateX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .side-menu.hidden {
+            transform: translateX(-100%);
+        }
+        
+        .side-menu.dark {
+            background-color: #2d3748;
+            color: white;
+        }
+        
+        .menu-content {
+            padding: 1rem;
+        }
+        
+        .menu-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        
+        .menu-list {
+            list-style: none;
+        }
+        
+        .menu-item {
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+        }
+        
+        .menu-item:hover {
+            background-color: #f7fafc;
+        }
+        
+        .menu-item.dark:hover {
+            background-color: #4a5568;
+        }
+        
+        .menu-divider {
+            margin: 1.5rem 0;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .menu-divider.dark {
+            border-top-color: #4a5568;
+        }
+        
+        .location-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+        }
+        
+        .location-item:hover {
+            background-color: #f7fafc;
+        }
+        
+        .location-item.dark:hover {
+            background-color: #4a5568;
+        }
+        
+        .location-item.active {
+            background-color: #ebf8ff;
+        }
+        
+        .location-item.active.dark {
+            background-color: #2c5282;
+        }
+        
+        .location-img {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            background-color: #cbd5e0;
+            margin-right: 0.5rem;
+            overflow: hidden;
+        }
+        
+        .location-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .location-details {
+            flex: 1;
+        }
+        
+        .location-name {
+            font-weight: 500;
+        }
+        
+        .location-address {
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+        
+        /* Dark mode styles */
+        .dark-mode {
+            background-color: #1a202c;
+            color: white;
+        }
+        
+        /* Utility classes */
+        .hidden {
+            display: none;
+        }
+
+        .map-container {
+            width: 100vw;
+            height: 100vh;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+        <!-- Header -->
+        <header class="header">
+            <div style="display: flex; align-items: center;">
+                <button class="btn" id="menu-toggle">
+                    <i class="ri-menu-line" style="font-size: 1.5rem;"></i>
+                </button>
+                <h1 class="header-title" style="margin-left: 1rem;">Tap2Go 360° Tours</h1>
+            </div>
+            <div class="header-controls">
+                <button class="btn" id="theme-toggle">
+                    <i class="ri-moon-line" style="font-size: 1.5rem;"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main content -->
+        <div class="main-content">
+            <!-- 360 view -->
+            <div class="panorama-container">
+                <iframe src="https://www.google.com/maps/embed?pb=!4v1743693478357!6m8!1m7!1sCAoSFkNJSE0wb2dLRUlDQWdJQzY2TnlHZVE.!2m2!1d14.5869355933335!2d120.981249114553!3f93.13321!4f3.489680000000007!5f0.7820865974627469" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                <img id="panorama-img" src="/api/placeholder/800/500" alt="National Museum" class="panorama-img">
+                
+                <!-- Navigation arrows -->
+                <button class="nav-arrow nav-previous" id="nav-previous">
+                    <i class="ri-arrow-left-line" style="font-size: 1.5rem;"></i>
+                </button>
+                <button class="nav-arrow nav-next" id="nav-next">
+                    <i class="ri-arrow-right-line" style="font-size: 1.5rem;"></i>
+                </button>
+                
+                <!-- Location title -->
+                <div class="location-title">
+                    <h2 id="location-name" style="font-size: 1.25rem; font-weight: bold;">National Museum</h2>
+                </div>
+                
+                <!-- Controls -->
+                <div class="controls-bar">
+                    <button class="btn" id="play-toggle">
+                        <i class="ri-play-line" style="font-size: 1.25rem;"></i>
+                    </button>
+                    <div class="indicator-dots" id="indicator-dots">
+                        <!-- Dots generated by JS -->
+                    </div>
+                    <button class="btn" id="info-toggle">
+                        <i class="ri-information-line" style="font-size: 1.25rem;"></i>
+                    </button>
+                </div>
+                
+                <!-- Hotspots container -->
+                <div id="hotspots-container">
+                    <!-- Hotspots generated by JS -->
+                </div>
+            </div>
+            
+            <!-- Information panel -->
+            <div class="info-panel hidden" id="info-panel">
+                <div class="info-header">
+                    <h3 style="font-size: 1.25rem; font-weight: bold;">Location Details</h3>
+                    <button class="btn" id="close-info" style="color: #4a5568;">
+                        <i class="ri-close-line" style="font-size: 1.5rem;"></i>
+                    </button>
+                </div>
+                
+                <div class="info-content">
+                    <div class="info-section">
+                        <h4 class="info-title">Name</h4>
+                        <p id="info-name">National Museum</p>
+                    </div>
+                    
+                    <div class="info-section">
+                        <h4 class="info-title">Location</h4>
+                        <p id="info-location">Manila</p>
+                    </div>
+                    
+                    <div class="info-section">
+                        <h4 class="info-title">Description</h4>
+                        <p id="info-description" style="font-size: 0.875rem;">The National Museum of the Philippines is the country's premier repository of cultural, historical, and natural artifacts. It houses extensive collections of archaeology, fine arts, and natural history, showcasing the rich cultural heritage of the Philippines.</p>
+                    </div>
+                    
+                    <div class="info-section">
+                        <h4 class="info-title">Points of Interest</h4>
+                        <ul class="info-list" id="info-hotspots">
+                            <!-- Hotspots list generated by JS -->
+                        </ul>
+                    </div>
+                    
+                    <div class="info-section">
+                        <h4 class="info-title">Rating</h4>
+                        <div class="rating">
+                            <span class="star">★</span>
+                            <span id="info-rating">5.0</span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-section">
+                        <h4 class="info-title">Price Range</h4>
+                        <p id="info-price">Free on Sundays, ₱0-₱150 on other days</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Side menu -->
+            <div class="side-menu hidden" id="side-menu">
+                <div class="menu-content">
+                    <h2 class="menu-title">Menu</h2>
+                    <ul class="menu-list">
+                        <li class="menu-item"><a href="index.html#home">Home</a></li>
+                        <li class="menu-item"><a href="index.html#about">About</a></li>
+                        <li class="menu-item"><a href="index.html#discover">Discover</a></li>
+                        <li class="menu-item"><a href="index.html#gallery">Gallery</a></li>
+                        <li class="menu-item"><a href="index.html#place">Place</a></li>
+                    </ul>
+                    
+                    <div class="menu-divider"></div>
+                    
+                    <h3 style="font-weight: 600; margin-bottom: 0.5rem;">Available Tours</h3>
+                    <div id="locations-list">
+                        <!-- Locations list generated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // App state
+        const state = {
+            currentLocation: 0,
+            isDarkMode: false,
+            isMenuOpen: false,
+            isInfoOpen: false,
+            isPlaying: false,
+            playInterval: null,
+            locations: [
+                {
+                    id: 1,
+                    name: "National Museum",
+                    location: "Manila",
+                    description: "The National Museum of the Philippines is the country's premier repository of cultural, historical, and natural artifacts. It houses extensive collections of archaeology, fine arts, and natural history, showcasing the rich cultural heritage of the Philippines.",
+                    hotspots: [],
+                    positions: [
+                        { top: '30%', left: '20%' },
+                        { top: '50%', left: '60%' },
+                        { top: '70%', left: '40%' }
+                    ],
+                    rating: 5.0,
+                    price: "Free on Sundays, ₱0-₱150 on other days",
+                    image: "https://i.pinimg.com/736x/c4/83/59/c48359be0215475082714742938be0c9.jpg"
+                },
+                {
+                    id: 2,
+                    name: "White Beach",
+                    location: "Boracay, Aklan",
+                    description: "Known for its pristine white sand and crystal clear waters, Boracay's White Beach consistently ranks among the world's most beautiful beaches. It offers water activities, dining options, and stunning sunsets.",
+                    hotspots: [],
+                    positions: [
+                        { top: '40%', left: '30%' },
+                        { top: '55%', left: '50%' },
+                        { top: '65%', left: '70%' }
+                    ],
+                    rating: 5.0,
+                    price: "₱₱₱",
+                    image: "/api/placeholder/800/500"
+                },
+                {
+                    id: 3,
+                    name: "Luneta Park",
+                    location: "Manila",
+                    description: "Also known as Rizal Park, this historical urban park commemorates the Philippines' national hero, José Rizal. The park features gardens, monuments, and hosts the iconic changing of the guards ceremony.",
+                    hotspots: [],
+                    positions: [
+                        { top: '35%', left: '45%' },
+                        { top: '60%', left: '25%' },
+                        { top: '50%', left: '75%' }
+                    ],
+                    rating: 4.8,
+                    price: "₱",
+                    image: "/api/placeholder/800/500"
+                },
+                {
+                    id: 4,
+                    name: "Underground River",
+                    location: "Puerto Princesa, Palawan",
+                    description: "A UNESCO World Heritage Site, this natural wonder features an underground river system that winds through a limestone cave before emptying into the South China Sea. It's known for stunning formations and diverse wildlife.",
+                    hotspots: ["Cathedral Cave", "Italian's Chamber", "Bat Colony"],
+                    positions: [
+                        { top: '25%', left: '35%' },
+                        { top: '45%', left: '65%' },
+                        { top: '70%', left: '50%' }
+                    ],
+                    rating: 5.0,
+                    price: "₱₱",
+                    image: "/api/placeholder/800/500"
+                },
+                {
+                    id: 5,
+                    name: "Chocolate Hills",
+                    location: "Bohol",
+                    description: "One of the Philippines' most iconic natural wonders, featuring over 1,200 perfectly cone-shaped hills that turn chocolate-brown during the dry season. This geological formation is utterly unique to Bohol.",
+                    hotspots: ["Viewing Deck", "ATV Trails", "Tarsier Sanctuary"],
+                    positions: [
+                        { top: '30%', left: '55%' },
+                        { top: '50%', left: '25%' },
+                        { top: '65%', left: '60%' }
+                    ],
+                    rating: 4.9,
+                    price: "₱₱",
+                    image: "/api/placeholder/800/500"
+                }
+            ]
+        };
+
+        // DOM References
+        const app = document.getElementById('app');
+        const panoramaImg = document.getElementById('panorama-img');
+        const locationName = document.getElementById('location-name');
+        const navPrevious = document.getElementById('nav-previous');
+        const navNext = document.getElementById('nav-next');
+        const menuToggle = document.getElementById('menu-toggle');
+        const themeToggle = document.getElementById('theme-toggle');
+        const playToggle = document.getElementById('play-toggle');
+        const infoToggle = document.getElementById('info-toggle');
+        const closeInfo = document.getElementById('close-info');
+        const sideMenu = document.getElementById('side-menu');
+        const infoPanel = document.getElementById('info-panel');
+        const indicatorDots = document.getElementById('indicator-dots');
+        const hotspotsContainer = document.getElementById('hotspots-container');
+        const locationsListContainer = document.getElementById('locations-list');
+        
+        // Info panel elements
+        const infoName = document.getElementById('info-name');
+        const infoLocation = document.getElementById('info-location');
+        const infoDescription = document.getElementById('info-description');
+        const infoHotspots = document.getElementById('info-hotspots');
+        const infoRating = document.getElementById('info-rating');
+        const infoPrice = document.getElementById('info-price');
+
+        // Functions to manipulate UI
+        function updateUI() {
+            const currentPlace = state.locations[state.currentLocation];
+            
+            // Update panorama image
+            panoramaImg.src = currentPlace.image;
+            panoramaImg.alt = currentPlace.name;
+            
+            // Update location title
+            locationName.textContent = currentPlace.name;
+            
+            // Update info panel
+            infoName.textContent = currentPlace.name;
+            infoLocation.textContent = currentPlace.location;
+            infoDescription.textContent = currentPlace.description;
+            infoRating.textContent = currentPlace.rating.toFixed(1);
+            infoPrice.textContent = currentPlace.price;
+            
+            // Update hotspots list in info panel
+            infoHotspots.innerHTML = '';
+            currentPlace.hotspots.forEach(hotspot => {
+                const li = document.createElement('li');
+                li.textContent = hotspot;
+                infoHotspots.appendChild(li);
+            });
+            
+            // Update hotspots on panorama
+            hotspotsContainer.innerHTML = '';
+            currentPlace.hotspots.forEach((hotspot, index) => {
+                const hotspotEl = document.createElement('div');
+                hotspotEl.className = 'hotspot';
+                hotspotEl.textContent = hotspot;
+                hotspotEl.style.top = currentPlace.positions[index].top;
+                hotspotEl.style.left = currentPlace.positions[index].left;
+                hotspotsContainer.appendChild(hotspotEl);
+            });
+            
+            // Update indicator dots
+            indicatorDots.innerHTML = '';
+            state.locations.forEach((_, index) => {
+                const dot = document.createElement('div');
+                dot.className = `dot ${index === state.currentLocation ? 'active' : ''}`;
+                dot.addEventListener('click', () => {
+                    navigateTo(index);
+                });
+                indicatorDots.appendChild(dot);
+            });
+            
+            // Update locations list in side menu
+            const locationItems = document.querySelectorAll('.location-item');
+            locationItems.forEach((item, index) => {
+                if (index === state.currentLocation) {
+                    item.classList.add('active');
+                    if (state.isDarkMode) {
+                        item.classList.add('dark');
+                    } else {
+                        item.classList.remove('dark');
+                    }
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+
+        function navigateTo(index) {
+            state.currentLocation = index;
+            updateUI();
+        }
+
+        function nextLocation() {
+            state.currentLocation = (state.currentLocation + 1) % state.locations.length;
+            updateUI();
+        }
+
+        function previousLocation() {
+            state.currentLocation = (state.currentLocation - 1 + state.locations.length) % state.locations.length;
+            updateUI();
+        }
+
+        function toggleMenu() {
+            state.isMenuOpen = !state.isMenuOpen;
+            if (state.isMenuOpen) {
+                sideMenu.classList.remove('hidden');
+            } else {
+                sideMenu.classList.add('hidden');
+            }
+        }
+
+        function toggleInfo() {
+            state.isInfoOpen = !state.isInfoOpen;
+            if (state.isInfoOpen) {
+                infoPanel.classList.remove('hidden');
+            } else {
+                infoPanel.classList.add('hidden');
+            }
+        }
+
+        function toggleDarkMode() {
+            state.isDarkMode = !state.isDarkMode;
+            if (state.isDarkMode) {
+                document.body.classList.add('dark-mode');
+                themeToggle.innerHTML = '<i class="ri-sun-line" style="font-size: 1.5rem;"></i>';
+                sideMenu.classList.add('dark');
+                infoPanel.classList.add('dark');
+                
+                // Update menu items
+                const menuItems = document.querySelectorAll('.menu-item');
+                menuItems.forEach(item => {
+                    item.classList.add('dark');
+                });
+                
+                // Update location items
+                const locationItems = document.querySelectorAll('.location-item');
+                locationItems.forEach(item => {
+                    item.classList.add('dark');
+                });
+                
+                // Update menu divider
+                const menuDivider = document.querySelector('.menu-divider');
+                if (menuDivider) {
+                    menuDivider.classList.add('dark');
+                }
+            } else {
+                document.body.classList.remove('dark-mode');
+                themeToggle.innerHTML = '<i class="ri-moon-line" style="font-size: 1.5rem;"></i>';
+                sideMenu.classList.remove('dark');
+                infoPanel.classList.remove('dark');
+                
+                // Update menu items
+                const menuItems = document.querySelectorAll('.menu-item');
+                menuItems.forEach(item => {
+                    item.classList.remove('dark');
+                });
+                
+                // Update location items
+                const locationItems = document.querySelectorAll('.location-item');
+                locationItems.forEach(item => {
+                    item.classList.remove('dark');
+                });
+                
+                // Update menu divider
+                const menuDivider = document.querySelector('.menu-divider');
+                if (menuDivider) {
+                    menuDivider.classList.remove('dark');
+                }
+            }
+        }
+
+        function toggleAutoplay() {
+            state.isPlaying = !state.isPlaying;
+            
+            if (state.isPlaying) {
+                playToggle.innerHTML = '<i class="ri-pause-line" style="font-size: 1.25rem;"></i>';
+                state.playInterval = setInterval(() => {
+                    nextLocation();
+                }, 5000);
+            } else {
+                playToggle.innerHTML = '<i class="ri-play-line" style="font-size: 1.25rem;"></i>';
+                clearInterval(state.playInterval);
+            }
+        }
+
+        // Populate locations list
+        function populateLocationsList() {
+            locationsListContainer.innerHTML = '';
+            
+            state.locations.forEach((location, index) => {
+                const locationItem = document.createElement('div');
+                locationItem.className = `location-item ${index === state.currentLocation ? 'active' : ''}`;
+                
+                const locationImgContainer = document.createElement('div');
+                locationImgContainer.className = 'location-img';
+                
+                const locationImg = document.createElement('img');
+                locationImg.src = "/api/placeholder/32/32";
+                locationImg.alt = location.name;
+                
+                const locationDetails = document.createElement('div');
+                locationDetails.className = 'location-details';
+                
+                const locationNameEl = document.createElement('p');
+                locationNameEl.className = 'location-name';
+                locationNameEl.textContent = location.name;
+                
+                const locationAddress = document.createElement('p');
+                locationAddress.className = 'location-address';
+                locationAddress.textContent = location.location;
+                
+                locationImgContainer.appendChild(locationImg);
+                locationDetails.appendChild(locationNameEl);
+                locationDetails.appendChild(locationAddress);
+                
+                locationItem.appendChild(locationImgContainer);
+                locationItem.appendChild(locationDetails);
+                
+                locationItem.addEventListener('click', () => {
+                    navigateTo(index);
+                    toggleMenu();
+                });
+                
+                locationsListContainer.appendChild(locationItem);
+            });
+        }
+
+        // Initialize the app
+        function init() {
+            // Populate locations list in side menu
+            populateLocationsList();
+            
+            // Update UI for initial state
+            updateUI();
+            
+            // Setup event listeners
+            navNext.addEventListener('click', nextLocation);
+            navPrevious.addEventListener('click', previousLocation);
+            menuToggle.addEventListener('click', toggleMenu);
+            themeToggle.addEventListener('click', toggleDarkMode);
+            playToggle.addEventListener('click', toggleAutoplay);
+            infoToggle.addEventListener('click', toggleInfo);
+            closeInfo.addEventListener('click', toggleInfo);
+            
+            // Add keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight') {
+                    nextLocation();
+                } else if (e.key === 'ArrowLeft') {
+                    previousLocation();
+                } else if (e.key === 'Escape') {
+                    if (state.isInfoOpen) toggleInfo();
+                    if (state.isMenuOpen) toggleMenu();
+                }
+            });
+        }
+
+        // Initialize the app when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
